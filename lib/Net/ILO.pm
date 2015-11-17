@@ -9,7 +9,7 @@ use English qw(-no_match_vars);
 use IO::Socket::SSL;
 use XML::Simple;
 
-our $VERSION = '0.54_003';
+our $VERSION = '0.54_004';
 
 
 my $METHOD_UNSUPPORTED = 'Method not supported by this iLO version';
@@ -1852,6 +1852,42 @@ sub _populate_host_data {
             }
 
         }
+        elsif ($smbios_type == 233) {
+
+            for my $entry (0 .. scalar @$smbios_data) {
+
+                my $field_name  = $smbios_data->[$entry]->{NAME};
+                my $field_value = $smbios_data->[$entry]->{VALUE};
+
+                next unless $field_name && $field_value;
+                next unless $field_name eq 'Port';
+
+                # MAC address is offset by one from port label
+
+                my $current_mac = $smbios_data->[$entry + 1]->{VALUE};
+
+                if ($field_value eq '1') {
+                    $self->{mac01} = $current_mac;
+                }
+                elsif ($field_value eq '2') {
+                    $self->{mac02} = $current_mac;
+                }
+                elsif ($field_value eq '3') {
+                    $self->{mac03} = $current_mac;
+                }
+                elsif ($field_value eq '4') {
+                    $self->{mac04} = $current_mac;
+                }
+                elsif ($field_value eq '5') {
+                    $self->{mac05} = $current_mac;
+                }
+                elsif ($field_value eq '6') {
+                    $self->{mac06} = $current_mac;
+                }
+
+            }
+
+        }
 
     }
 
@@ -1859,6 +1895,8 @@ sub _populate_host_data {
     ($self->{mac02}  = lc($self->{mac02}  || "")) =~ tr/-/:/;
     ($self->{mac03}  = lc($self->{mac03}  || "")) =~ tr/-/:/;
     ($self->{mac04}  = lc($self->{mac04}  || "")) =~ tr/-/:/;
+    ($self->{mac05}  = lc($self->{mac05}  || "")) =~ tr/-/:/;
+    ($self->{mac06}  = lc($self->{mac06}  || "")) =~ tr/-/:/;
     ($self->{macilo} = lc($self->{macilo} || "")) =~ tr/-/:/;
 
     return 1;
