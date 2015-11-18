@@ -1,4 +1,3 @@
-
 =head1 NAME
 
 Net::ILO - Interface to HP Integrated Lights-Out
@@ -233,7 +232,7 @@ Method not supported by this iLO version
     # default is ILO0000000000 where 000... is your serial number
     my $machine_name = $ilo->hostname;
 
-Returns the hostname of the remote machine. This is also the name shown
+Returns the hostname of the iLO processor. This is also the name shown
 when logging in to the iLO interface, in the SSL cert, etc.
 
 For information on changing the hostname, see the network() method.
@@ -243,7 +242,7 @@ For information on changing the hostname, see the network() method.
     # maybe ilo.somecompany.net
     my $domain_name = $ilo->domain_name;
 
-Returns the DNS domain name of the remote machine.
+Returns the DNS domain name of the iLO processor.
 
 For information on changing the domain name, see the network() method.
 
@@ -278,10 +277,56 @@ Returns the subnet mask of the iLO processor.
 
 Returns the default gateway in use for the iLO networking.
 
+=item dhcp_gateway()
+
+    # either 'Y' or 'N'
+    print $ilo->dhcp_gateway;
+
+Returns "Y" if iLO is to get the default gateway from the DHCP server,
+"N" if static information are used.
+
+=item dhcp_dns_server()
+
+    # either 'Y' or 'N'
+    print $ilo->dhcp_sntp_settings;
+
+Returns "Y" if iLO is to get the DNS servers from the DHCP server,
+"N" if static information are used.
+
+=item prim_dns_server(), sec_dns_server(), ter_dns_server()
+
+    # the IP address of the first DNS server
+    print $ilo->prim_dns_server;
+
+Return the IP address of the primary, secondary or tertiary DNS server,
+respectively.
+
+=item dhcp_sntp_settings()
+
+    # either 'Y' or 'N'
+    print $ilo->dhcp_sntp_settings;
+
+Returns "Y" if iLO is to get the SNTP time servers and timezone from
+the DHCP server, "N" if static information are used.
+
+=item sntp_server1(), sntp_server2()
+
+    # the IP address of the first SNTP server
+    print $ilo->sntp_server1;
+
+Returns the IP address of the corresponding SNTP server.
+
+=item timezone()
+
+    # the timezone, e.g. "Europe/Paris"
+    print $ilo->timezone;
+
+Returns the timezone.
+
 =item network()
 
     $ilo->network({
-        name            => 'testbox01',
+        hostname        => 'testbox01',
         domain_name     => 'mydomain.com',
         dhcp_enabled    => 'no',
         ip_address      => '192.168.128.10',
@@ -292,12 +337,21 @@ Returns the default gateway in use for the iLO networking.
 Allows you to modify the network configuration of the iLO processor. The
 following parameters are allowed, see individual methods above for more detail:
 
-    name
+    hostname
     domain_name
     dhcp_enabled
     ip_address
     subnet_mask
     gateway
+    dhcp_gateway
+    dhcp_dns_server
+    prim_dns_server
+    sec_dns_server
+    ter_dns_server
+    dhcp_sntp_settings
+    sntp_server1
+    sntp_server2
+    timezone
 
 If any parameter is not specified, current values are used.
 
@@ -328,6 +382,36 @@ cause you to lose connectivity.
     print $ilo->model;
 
 Returns the model name of the machine.
+
+=item server_name()
+
+    # an unconfigured iLO will return a name based on the product
+    # number of the server, for example: DL365G1POA00
+    print $ilo->server_name;
+
+    # set the server name
+    $ilo->server_name("room04.aperturescience.com");
+
+Get or set the name of the server as it is known to iLO. This value
+is not forwarded to the host operating system, and therefore need not
+be a valid DNS compatible name.
+
+=item serial_cli_speed()
+
+    $ilo->serial_cli_speed(2);  # set the CLI port speed to 19,200 bps
+
+Get or set the speed of the CLI port speed. The possible values are:
+0 (no change), 1 (9,600 bps), 2 (19,200 bps), 3 (38,400 bps),
+4 (57,600 bps), 5 (115,200 bps).
+
+=item serial_cli_status()
+
+    # print the status of the CLI
+    print $ilo->serial_cli_status;
+
+Get or set the status of the CLI. The possible values are: 0 (no change),
+1 (disabled), 2 (enabled, no authentication required), 3 (enabled,
+authentication required).
 
 =item serialID()
 
@@ -441,6 +525,22 @@ via this method.
     my $eth3_mac = $ilo->mac04;
 
 Returns the mac address associated with the machine's quaternary NIC, if
+installed. Note that mac addresses for add-on cards will not be available
+via this method.
+
+=item mac05()
+
+    my $eth4_mac = $ilo->mac05;
+
+Returns the mac address associated with the machine's quinary (5th) NIC, if
+installed. Note that mac addresses for add-on cards will not be available
+via this method.
+
+=item mac06()
+
+    my $eth5_mac = $ilo->mac06;
+
+Returns the mac address associated with the machine's senary (6th) NIC, if
 installed. Note that mac addresses for add-on cards will not be available
 via this method.
 
@@ -724,11 +824,35 @@ eg. http, https, ssh, etc.
         update_ilo_privilege     => 'Yes',
     })
 
-Adds an iLO user. Admin users have full priveleges, including the ability to
+Adds an iLO user. Admin users have full privileges, including the ability to
 add and remove other users. Non-admin users have configurable privileges which
 default to disabled. The subset of permissions implemented is listed above.
 Users can log in to iLO via any interface, ie. HTTPS, SSH, etc. When adding a
 non-admin user, passing in the parameter admin => 'No' is also acceptable.
+
+
+=item get_user()
+
+    my $user_info = $ilo->get_user("cjohnson");
+
+    my @privileges = grep { $user_info->{$_} =~ /^Y/ } qw<
+        admin  remote_console_privilege  reset_privilege
+        virtual_media_privilege  config_ilo_privilege
+    >;
+
+    s/_privilege$// for @privileges;
+
+    print "user name: $user_info->{name}\n",
+          "     privileges: @privileges\n";
+
+    # user name: Cave Johnson
+    #      privileges: admin remote_console reset virtual_media config_ilo
+
+Method for fetching information about a user account. Returns a hashref
+with mostly the same fields than the ones you pass to C<add_user()>:
+C<name>, C<username>, C<admin>, C<remote_console_privilege>,
+C<reset_privilege>, C<virtual_media_privilege>, C<config_ilo_privilege>.
+
 
 =item mod_user()
 
@@ -894,6 +1018,7 @@ Copyright 2011 Nicholas Lewis, all rights reserved.
 
 This program is free software; you can redistribute it and/or modify it
 under the same terms as Perl itself.
+
 
 
 =cut
