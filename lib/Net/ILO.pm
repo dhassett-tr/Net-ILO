@@ -576,6 +576,48 @@ sub mac04 {
 }
 
 
+sub mac05 {
+
+    my $self = shift;
+
+    # see above
+
+    if (!$self->{mac05} && !$self->{mac01}) {
+        $self->_populate_host_data or return;
+    }
+
+    if ($self->{mac05}) {
+        return $self->{mac05};
+    }
+    else {
+        $self->error($METHOD_UNSUPPORTED);
+        return;
+    }
+
+}
+
+
+sub mac06 {
+
+    my $self = shift;
+
+    # see above
+
+    if (!$self->{mac06} && !$self->{mac01}) {
+        $self->_populate_host_data or return;
+    }
+
+    if ($self->{mac06}) {
+        return $self->{mac06};
+    }
+    else {
+        $self->error($METHOD_UNSUPPORTED);
+        return;
+    }
+
+}
+
+
 sub macilo {
 
     my $self = shift;
@@ -2651,6 +2693,22 @@ via this method.
     my $eth3_mac = $ilo->mac04;
 
 Returns the mac address associated with the machine's quaternary NIC, if
+installed. Note that mac addresses for add-on cards will not be available
+via this method.
+
+=item mac05()
+
+    my $eth4_mac = $ilo->mac05;
+
+Returns the mac address associated with the machine's quinary (5th) NIC, if
+installed. Note that mac addresses for add-on cards will not be available
+via this method.
+
+=item mac06()
+
+    my $eth5_mac = $ilo->mac06;
+
+Returns the mac address associated with the machine's senary (6th) NIC, if
 installed. Note that mac addresses for add-on cards will not be available
 via this method.
 
